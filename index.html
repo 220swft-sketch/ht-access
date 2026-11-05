@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HT Access Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 20px;
+    background: #101414;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+.container {
+    max-width: 480px;
+    margin: auto;
+}
+
+.logo {
+    color: #21C17C;
+    font-size: 34px;
+    font-weight: bold;
+    margin: 15px 0 5px;
+}
+
+.subtitle {
+    color: #aaa;
+    margin-bottom: 25px;
+}
+
+select, button {
+    width: 100%;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 17px;
+    margin-bottom: 12px;
+}
+
+select {
+    background: #252d2a;
+    color: white;
+    border: 1px solid #21C17C;
+}
+
+button {
+    border: none;
+    background: #21C17C;
+    color: #101414;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+}
+
+#reader {
+    width: 100%;
+    margin: 15px auto;
+    border: 2px solid #21C17C;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.result {
+    display: none;
+    margin-top: 20px;
+    padding: 22px 15px;
+    border-radius: 12px;
+    background: #252d2a;
+}
+
+.player {
+    font-size: 25px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.category {
+    font-size: 17px;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.band {
+    font-size: 30px;
+    font-weight: bold;
+    padding: 20px 8px;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+.WHITE {
+    background: white;
+    color: black;
+}
+
+.BLACK {
+    background: black;
+    color: white;
+    border: 1px solid white;
+}
+
+.GREEN {
+    background: #21C17C;
+    color: black;
+}
+
+.VIP {
+    background: #087a47;
+    color: white;
+    border: 2px solid #21C17C;
+}
+
+.status {
+    font-size: 19px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.success { color: #21C17C; }
+.warning { color: #ffbd45; }
+.error { color: #ff5555; }
+
+.small {
+    color: #888;
+    font-size: 13px;
+    margin-top: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">HT ACCESS</div>
+    <div class="subtitle">PLAYER CHECK-IN SYSTEM</div>
+
+    <select id="station">
+        <option value="Entry">ENTRY STATION</option>
+        <option value="Drinks">DRINKS STATION</option>
+        <option value="Halfway">HALFWAY STATION</option>
+    </select>
+
+    <button id="startButton" onclick="startScanner()">
+        START SCANNER
+    </button>
+
+    <button id="stopButton" onclick="stopScanner()" disabled>
+        STOP SCANNER
+    </button>
+
+    <div id="reader"></div>
+
+    <div id="result" class="result">
+        <div id="player" class="player"></div>
+        <div id="category" class="category"></div>
+        <div id="band" class="band"></div>
+        <div id="status" class="status"></div>
+        <button onclick="scanNext()" style="margin-top:20px;">
+            SCAN NEXT PLAYER
+        </button>
+    </div>
+
+    <div class="small">
+        HANDICAP TOUR | LIVE LIKE A PRO
+    </div>
+
+</div>
+
+<script>
+
+const API_URL = "https://script.google.com/macros/s/AKfycbyEIwuWbCzAPJ6IsL8x4JjOC_WZOT99i-cq5-lhj4VyZ1H-7zSgy-N8BIU8zBkAOzA/exec";
+
+let scanner = null;
+let processing = false;
+
+async function startScanner() {
+
+    if (scanner) return;
+
+    document.getElementById("result").style.display = "none";
+
+    scanner = new Html5Qrcode("reader");
+
+    try {
+        await scanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            onScanSuccess
+        );
+
+        document.getElementById("startButton").disabled = true;
+        document.getElementById("stopButton").disabled = false;
+
+    } catch (error) {
+        scanner = null;
+        alert("Camera could not start. Please allow camera access and try again.");
+    }
+}
+
+async function stopScanner() {
+
+    if (scanner) {
+        try {
+            await scanner.stop();
+            await scanner.clear();
+        } catch (error) {
+            console.log(error);
+        }
+
+        scanner = null;
+    }
+
+    document.getElementById("startButton").disabled = false;
+    document.getElementById("stopButton").disabled = true;
+}
+
+async function onScanSuccess(decodedText) {
+
+    if (processing) return;
+
+    processing = true;
+
+    await stopScanner();
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("player").textContent = "Checking...";
+    document.getElementById("category").textContent = "";
+    document.getElementById("band").textContent = "";
+    document.getElementById("status").textContent = "";
+
+    const qr = decodedText.trim();
+    const station = document.getElementById("station").value;
+
+    const callbackName = "htCallback_" + Date.now();
+
+    window[callbackName] = function(data) {
+
+        delete window[callbackName];
+
+        displayResult(data);
+
+        processing = false;
+    };
+
+    const script = document.createElement("script");
+
+    script.src =
+        API_URL +
+        "?action=scan" +
+        "&qr=" + encodeURIComponent(qr) +
+        "&station=" + encodeURIComponent(station) +
+        "&callback=" + callbackName;
+
+    script.onerror = function() {
+        delete window[callbackName];
+        processing = false;
+
+        document.getElementById("player").textContent = "CONNECTION ERROR";
+        document.getElementById("status").textContent =
+            "Please check your internet connection and try again.";
+        document.getElementById("status").className = "status error";
+    };
+
+    document.body.appendChild(script);
+}
+
+function displayResult(data) {
+
+    const player = document.getElementById("player");
+    const category = document.getElementById("category");
+    const band = document.getElementById("band");
+    const status = document.getElementById("status");
+
+    player.textContent = data.name || "Unknown";
+    category.textContent = "CATEGORY: " + (data.category || "HT Fan");
+
+    band.className = "band";
+
+    if (data.colour === "WHITE") {
+        band.classList.add("WHITE");
+    } else if (data.colour === "GREEN (VIP)") {
+        band.classList.add("VIP");
+    } else if (data.colour === "GREEN") {
+        band.classList.add("GREEN");
+    } else {
+        band.classList.add("BLACK");
+    }
+
+    band.textContent = "GIVE " + data.colour + " WRISTBAND";
+
+    if (data.duplicate) {
+        status.textContent = "ALREADY CHECKED IN";
+        status.className = "status warning";
+    } else if (data.success) {
+        status.textContent = "CHECK-IN SUCCESSFUL";
+        status.className = "status success";
+    } else {
+        status.textContent = data.message || "ERROR";
+        status.className = "status error";
+    }
+}
+
+function scanNext() {
+
+    document.getElementById("result").style.display = "none";
+
+    if (!scanner) {
+        startScanner();
+    }
+}
+
+</script>
+
+</body>
+</html>
