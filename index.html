@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HT Access Scanner</title>
+<title>HT Access</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -24,11 +24,10 @@ body {
     margin: auto;
 }
 
-.logo {
+h1 {
     color: #21C17C;
-    font-size: 34px;
-    font-weight: bold;
-    margin: 15px 0 5px;
+    font-size: 32px;
+    margin-bottom: 5px;
 }
 
 .subtitle {
@@ -36,104 +35,114 @@ body {
     margin-bottom: 25px;
 }
 
-select, button {
+select, input {
     width: 100%;
-    padding: 15px;
+    padding: 14px;
+    margin: 8px 0;
     border-radius: 8px;
-    font-size: 17px;
-    margin-bottom: 12px;
-}
-
-select {
-    background: #252d2a;
+    border: 1px solid #444;
+    background: #202727;
     color: white;
-    border: 1px solid #21C17C;
+    font-size: 16px;
 }
 
 button {
+    width: 100%;
+    padding: 15px;
+    margin: 8px 0;
     border: none;
+    border-radius: 8px;
     background: #21C17C;
-    color: #101414;
+    color: #07130d;
+    font-size: 16px;
     font-weight: bold;
     cursor: pointer;
+}
+
+button.secondary {
+    background: #303939;
+    color: white;
+}
+
+button.override {
+    background: #e0a72e;
+    color: black;
 }
 
 button:disabled {
     opacity: 0.5;
 }
 
-#reader {
-    width: 100%;
-    margin: 15px auto;
-    border: 2px solid #21C17C;
-    border-radius: 10px;
-    overflow: hidden;
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
-.result {
-    display: none;
-    margin-top: 20px;
-    padding: 22px 15px;
-    border-radius: 12px;
-    background: #252d2a;
-}
-
-.player {
-    font-size: 25px;
-    font-weight: bold;
-    margin: 10px 0;
-}
-
-.category {
-    font-size: 17px;
-    color: #ccc;
-    margin-bottom: 15px;
-}
-
-.band {
-    font-size: 30px;
-    font-weight: bold;
-    padding: 20px 8px;
-    border-radius: 8px;
-    margin: 12px 0;
-}
-
-.WHITE {
-    background: white;
-    color: black;
-}
-
-.BLACK {
-    background: black;
+.tabs button {
+    flex: 1;
+    font-size: 14px;
+    background: #303939;
     color: white;
-    border: 1px solid white;
 }
 
-.GREEN {
+.tabs button.active {
     background: #21C17C;
-    color: black;
+    color: #07130d;
 }
 
-.VIP {
-    background: #087a47;
-    color: white;
-    border: 2px solid #21C17C;
-}
-
-.status {
-    font-size: 19px;
-    font-weight: bold;
+.panel {
+    background: #1b2422;
+    padding: 18px;
+    border-radius: 12px;
     margin-top: 15px;
 }
 
-.success { color: #21C17C; }
-.warning { color: #ffbd45; }
-.error { color: #ff5555; }
+#reader {
+    width: 100%;
+    margin: 15px auto;
+}
+
+#result {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #202727;
+}
+
+.player-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.colour {
+    font-size: 25px;
+    font-weight: bold;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+}
+
+.WHITE { background: white; color: black; }
+.BLACK { background: black; color: white; border: 1px solid #777; }
+.GREEN { background: #21C17C; color: black; }
+.VIP { background: #21C17C; color: black; }
+
+.status {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 12px 0;
+}
 
 .small {
-    color: #888;
+    color: #aaa;
     font-size: 13px;
-    margin-top: 25px;
+}
+
+.hidden {
+    display: none;
 }
 </style>
 </head>
@@ -142,137 +151,238 @@ button:disabled {
 
 <div class="container">
 
-    <div class="logo">HT ACCESS</div>
-    <div class="subtitle">PLAYER CHECK-IN SYSTEM</div>
+    <h1>HT ACCESS</h1>
+    <div class="subtitle">HANDICAP TOUR EVENT ACCESS CONTROL</div>
 
-    <select id="station">
-        <option value="Entry">ENTRY STATION</option>
-        <option value="Drinks">DRINKS STATION</option>
-        <option value="Halfway">HALFWAY STATION</option>
-    </select>
+    <div class="panel">
 
-    <button id="startButton" onclick="startScanner()">
-        START SCANNER
-    </button>
+        <label>SELECT STATION</label>
+        <select id="station">
+            <option value="Entry">Entry</option>
+            <option value="Drinks">Drinks</option>
+            <option value="Halfway">Halfway</option>
+        </select>
 
-    <button id="stopButton" onclick="stopScanner()" disabled>
-        STOP SCANNER
-    </button>
+    </div>
 
-    <div id="reader"></div>
+    <div class="tabs">
+        <button id="scanTab" class="active" onclick="showMode('scan')">
+            SCAN QR CODE
+        </button>
 
-    <div id="result" class="result">
-        <div id="player" class="player"></div>
-        <div id="category" class="category"></div>
-        <div id="band" class="band"></div>
-        <div id="status" class="status"></div>
-        <button onclick="scanNext()" style="margin-top:20px;">
-            SCAN NEXT PLAYER
+        <button id="manualTab" onclick="showMode('manual')">
+            MANUAL CHECK-IN
         </button>
     </div>
 
-    <div class="small">
-        HANDICAP TOUR | LIVE LIKE A PRO
+    <!-- QR SCANNER -->
+
+    <div id="scanMode" class="panel">
+
+        <p>Scan the player's HT QR code.</p>
+
+        <div id="reader"></div>
+
+        <button class="secondary" onclick="startScanner()">
+            START CAMERA
+        </button>
+
     </div>
+
+    <!-- MANUAL CHECK-IN -->
+
+    <div id="manualMode" class="panel hidden">
+
+        <p>For visitors without an HT QR code.</p>
+
+        <label>IDENTIFICATION TYPE</label>
+
+        <select id="identifierType">
+            <option value="ID">ID Number</option>
+            <option value="PHONE">Phone Number</option>
+        </select>
+
+        <input
+            type="text"
+            id="identifier"
+            placeholder="Enter ID number or phone number"
+        >
+
+        <input
+            type="text"
+            id="fullName"
+            placeholder="Enter full name and surname"
+        >
+
+        <button onclick="manualCheckin()">
+            CHECK IN
+        </button>
+
+    </div>
+
+    <!-- RESULT -->
+
+    <div id="result">
+
+        <div class="player-name" id="playerName"></div>
+
+        <div id="category"></div>
+
+        <div class="colour" id="wristband"></div>
+
+        <div class="status" id="status"></div>
+
+        <div id="overrideArea" class="hidden">
+
+            <button class="override" onclick="confirmOverride()">
+                OVERRIDE TO SUPPORTER – GREEN
+            </button>
+
+            <p class="small">
+                Use only when authorised.
+            </p>
+
+        </div>
+
+        <button onclick="resetScreen()">
+            NEXT PERSON
+        </button>
+
+    </div>
+
+    <p class="small">HANDICAP TOUR | HT ACCESS</p>
 
 </div>
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyEIwuWbCzAPJ6IsL8x4JjOC_WZOT99i-cq5-lhj4VyZ1H-7zSgy-N8BIU8zBkAOzA/exec";
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbyEIwuWbCzAPJ6IsL8x4JjOC_WZOT99i-cq5-lhj4VyZ1H-7zSgy-N8BIU8zBkAOzA/exec";
 
 let scanner = null;
-let processing = false;
+let scannerRunning = false;
+let activeIdentifier = "";
+let activeStation = "";
+let activeColour = "";
+let activeCategory = "";
 
-async function startScanner() {
+function showMode(mode) {
 
-    if (scanner) return;
+    stopScanner();
+
+    document.getElementById("scanMode").classList.toggle("hidden", mode !== "scan");
+    document.getElementById("manualMode").classList.toggle("hidden", mode !== "manual");
+
+    document.getElementById("scanTab").classList.toggle("active", mode === "scan");
+    document.getElementById("manualTab").classList.toggle("active", mode === "manual");
 
     document.getElementById("result").style.display = "none";
 
-    scanner = new Html5Qrcode("reader");
-
-    try {
-        await scanner.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            onScanSuccess
-        );
-
-        document.getElementById("startButton").disabled = true;
-        document.getElementById("stopButton").disabled = false;
-
-    } catch (error) {
-        scanner = null;
-        alert("Camera could not start. Please allow camera access and try again.");
+    if (mode === "scan") {
+        startScanner();
     }
 }
 
-async function stopScanner() {
+function startScanner() {
 
-    if (scanner) {
-        try {
-            await scanner.stop();
-            await scanner.clear();
-        } catch (error) {
-            console.log(error);
-        }
+    if (scannerRunning) return;
 
-        scanner = null;
+    if (!scanner) {
+        scanner = new Html5Qrcode("reader");
     }
 
-    document.getElementById("startButton").disabled = false;
-    document.getElementById("stopButton").disabled = true;
+    scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        function(decodedText) {
+            stopScanner();
+            processQR(decodedText);
+        },
+        function() {}
+    ).then(() => {
+        scannerRunning = true;
+    }).catch(err => {
+        alert("Camera could not start. Please check camera permissions.");
+    });
 }
 
-async function onScanSuccess(decodedText) {
+function stopScanner() {
 
-    if (processing) return;
+    if (scanner && scannerRunning) {
+        scanner.stop().then(() => {
+            scannerRunning = false;
+        }).catch(() => {
+            scannerRunning = false;
+        });
+    }
+}
 
-    processing = true;
+function processQR(qr) {
 
-    await stopScanner();
+    activeIdentifier = qr;
+    activeStation = document.getElementById("station").value;
 
-    document.getElementById("result").style.display = "block";
-    document.getElementById("player").textContent = "Checking...";
-    document.getElementById("category").textContent = "";
-    document.getElementById("band").textContent = "";
-    document.getElementById("status").textContent = "";
+    callBackend({
+        action: "scan",
+        qr: qr,
+        station: activeStation
+    });
+}
 
-    const qr = decodedText.trim();
-    const station = document.getElementById("station").value;
+function manualCheckin() {
+
+    const type = document.getElementById("identifierType").value;
+    const identifier = document.getElementById("identifier").value.trim();
+    const name = document.getElementById("fullName").value.trim();
+
+    if (!identifier) {
+        alert("Please enter an ID number or phone number.");
+        return;
+    }
+
+    if (!name) {
+        alert("Please enter the person's full name and surname.");
+        return;
+    }
+
+    activeIdentifier = identifier;
+    activeStation = document.getElementById("station").value;
+
+    callBackend({
+        action: "manual",
+        identifier: identifier,
+        type: type,
+        name: name,
+        station: activeStation
+    });
+}
+
+function callBackend(params) {
+
+    document.getElementById("status").innerText = "PROCESSING...";
 
     const callbackName = "htCallback_" + Date.now();
 
-    window[callbackName] = function(data) {
+    params.callback = callbackName;
 
-        delete window[callbackName];
-
-        displayResult(data);
-
-        processing = false;
-    };
+    const query = new URLSearchParams(params).toString();
 
     const script = document.createElement("script");
 
-    script.src =
-        API_URL +
-        "?action=scan" +
-        "&qr=" + encodeURIComponent(qr) +
-        "&station=" + encodeURIComponent(station) +
-        "&callback=" + callbackName;
+    script.src = SCRIPT_URL + "?" + query;
+
+    window[callbackName] = function(data) {
+
+        displayResult(data);
+
+        delete window[callbackName];
+        script.remove();
+    };
 
     script.onerror = function() {
+        alert("Could not connect to HT Access. Please try again.");
+        script.remove();
         delete window[callbackName];
-        processing = false;
-
-        document.getElementById("player").textContent = "CONNECTION ERROR";
-        document.getElementById("status").textContent =
-            "Please check your internet connection and try again.";
-        document.getElementById("status").className = "status error";
     };
 
     document.body.appendChild(script);
@@ -280,48 +390,81 @@ async function onScanSuccess(decodedText) {
 
 function displayResult(data) {
 
-    const player = document.getElementById("player");
-    const category = document.getElementById("category");
-    const band = document.getElementById("band");
-    const status = document.getElementById("status");
+    document.getElementById("result").style.display = "block";
 
-    player.textContent = data.name || "Unknown";
-    category.textContent = "CATEGORY: " + (data.category || "HT Fan");
+    const name = data.name || data.playerName || "Unknown Player";
+    const category = data.category || "HT Fan";
+    const colour = String(
+        data.colour || data.wristbandColour || "BLACK"
+    ).toUpperCase();
 
-    band.className = "band";
+    const status = String(data.status || data.message || "CHECK-IN COMPLETE");
 
-    if (data.colour === "WHITE") {
-        band.classList.add("WHITE");
-    } else if (data.colour === "GREEN (VIP)") {
-        band.classList.add("VIP");
-    } else if (data.colour === "GREEN") {
-        band.classList.add("GREEN");
-    } else {
-        band.classList.add("BLACK");
-    }
+    activeCategory = category;
+    activeColour = colour;
 
-    band.textContent = "GIVE " + data.colour + " WRISTBAND";
+    document.getElementById("playerName").innerText = name;
+    document.getElementById("category").innerText = "CATEGORY: " + category;
 
-    if (data.duplicate) {
-        status.textContent = "ALREADY CHECKED IN";
-        status.className = "status warning";
-    } else if (data.success) {
-        status.textContent = "CHECK-IN SUCCESSFUL";
-        status.className = "status success";
-    } else {
-        status.textContent = data.message || "ERROR";
-        status.className = "status error";
-    }
+    const band = document.getElementById("wristband");
+
+    band.className = "colour " +
+        (colour.includes("VIP") ? "VIP" : colour);
+
+    band.innerText = "GIVE " + colour + " WRISTBAND";
+
+    document.getElementById("status").innerText = status;
+
+    const isBlack = colour.includes("BLACK");
+
+    document.getElementById("overrideArea").classList.toggle(
+        "hidden",
+        !isBlack
+    );
 }
 
-function scanNext() {
+function confirmOverride() {
+
+    if (!activeIdentifier || !activeStation) {
+        alert("No check-in available to override.");
+        return;
+    }
+
+    const confirmed = confirm(
+        "Are you sure you want to change this check-in to SUPPORTER – GREEN?"
+    );
+
+    if (!confirmed) return;
+
+    callBackend({
+        action: "override",
+        identifier: activeIdentifier,
+        station: activeStation
+    });
+}
+
+function resetScreen() {
 
     document.getElementById("result").style.display = "none";
 
-    if (!scanner) {
+    document.getElementById("identifier").value = "";
+    document.getElementById("fullName").value = "";
+
+    activeIdentifier = "";
+    activeStation = "";
+    activeColour = "";
+    activeCategory = "";
+
+    if (!document.getElementById("manualMode").classList.contains("hidden")) {
+        document.getElementById("identifier").focus();
+    } else {
         startScanner();
     }
 }
+
+window.onload = function() {
+    startScanner();
+};
 
 </script>
 
